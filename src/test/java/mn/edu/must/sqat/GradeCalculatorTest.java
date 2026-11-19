@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** GradeCalculator-ийн нэгжийн тестүүд (JUnit 5, AAA бүтэц). */
 class GradeCalculatorTest {
@@ -135,5 +138,37 @@ class GradeCalculatorTest {
         assertAll(
                 () -> assertEquals(88.0, total, 1e-9),
                 () -> assertEquals("B", grade));
+    }
+
+    // ---------- Parameterized тестүүд ----------
+
+    @ParameterizedTest(name = "{0} оноо → {1}")
+    @DisplayName("letterGrade-ийн бүх хязгаар (parameterized)")
+    @CsvSource({"95,A", "90,A", "89.99,B", "80,B", "79.99,C", "70,C",
+                "69.99,D", "60,D", "59.99,F", "0,F", "100,A"})
+    void letterGradeBoundaries(double score, String expected) {
+        assertEquals(expected, calc.letterGrade(score));
+    }
+
+    @ParameterizedTest(name = "{0} оноо → exception")
+    @DisplayName("letterGrade: 0-100-аас гадуурх болон NaN утга exception шиднэ (parameterized)")
+    @ValueSource(doubles = {-1, -0.01, 100.01, 101, Double.NaN})
+    void letterGradeRejectsOutOfRange(double score) {
+        assertThrows(IllegalArgumentException.class, () -> calc.letterGrade(score));
+    }
+
+    @ParameterizedTest(name = "{0}+{1}+{2}+{3}+{4} = {5}")
+    @DisplayName("totalScore: хүчинтэй утгуудын нийлбэр (parameterized)")
+    @CsvSource({"10,40,10,10,30,100", "0,0,0,0,0,0", "9,35,8,9,27,88", "5.5,20.25,7,6.5,15,54.25"})
+    void totalScoreValidSums(double att, double lab, double q1, double q2, double exam, double expected) {
+        assertEquals(expected, calc.totalScore(att, lab, q1, q2, exam), 1e-9);
+    }
+
+    @ParameterizedTest(name = "({0}, {1}, {2}, {3}, {4}) → exception")
+    @DisplayName("totalScore: бүрэлдэхүүн бүрийн хязгаараас хэтэрсэн болон сөрөг утга (parameterized)")
+    @CsvSource({"10.01,0,0,0,0", "0,40.01,0,0,0", "0,0,10.01,0,0", "0,0,0,10.01,0", "0,0,0,0,30.01",
+                "-0.01,0,0,0,0", "0,-0.01,0,0,0", "0,0,-0.01,0,0", "0,0,0,-0.01,0", "0,0,0,0,-0.01"})
+    void totalScoreRejectsEachComponent(double att, double lab, double q1, double q2, double exam) {
+        assertThrows(IllegalArgumentException.class, () -> calc.totalScore(att, lab, q1, q2, exam));
     }
 }
